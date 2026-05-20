@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: uv 설치
+        uses: astral-sh/setup-uv@v5
+
+      - name: Python 설치
+        run: uv python install
+
+      - name: 의존성 설치
+        run: uv sync --all-extras --dev
+
+      - name: ruff 린팅
+        run: uv run ruff check .
+
+      - name: black 포맷 체크
+        run: uv run black --check .
+
+      - name: mypy 타입 체크
+        run: uv run mypy api/
+
+      - name: bandit 보안 스캔
+        run: uv run bandit -r api/ collector/
+
+      - name: pytest 테스트
+        run: uv run pytest
