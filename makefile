@@ -63,3 +63,27 @@ test:
 # CI 로컬에서 전부 한번에 실행
 check:
 	uv run ruff check . && uv run ruff format --check . && uv run mypy api/ && uv run bandit -r api/ collector/ && uv run pytest
+
+fix:
+	uv run ruff check --fix .
+	uv run ruff format .
+
+# 마이그레이션 파일 생성
+migrate-create:
+	alembic revision --autogenerate -m "$(msg)"
+
+# DB에 적용
+migrate:
+	alembic upgrade head
+
+# 한 단계 롤백
+migrate-down:
+	alembic downgrade -1
+
+# PostgreSQL CLI 접속
+db:
+	docker exec -it steam_stats-postgresql-1 psql -U steam -d steamdb
+
+# 테이블 목록 확인
+db-tables:
+	docker exec -it steam_stats-postgresql-1 psql -U steam -d steamdb -c "\dt"
