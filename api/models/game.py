@@ -19,6 +19,9 @@ class Game(SQLModel, table=True):
     is_indie: bool = False
     release_date: Optional[date] = None
     header_image: Optional[str] = None
+    metacritic_score: Optional[int] = None
+    metacritic_url: Optional[str] = None
+    peak_in_game: Optional[int] = None
     collected_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

@@ -87,3 +87,31 @@ db:
 # 테이블 목록 확인
 db-tables:
 	docker exec -it steam_stats-postgresql-1 psql -U steam -d steamdb -c "\dt"
+
+# 전체 테스트
+test:
+	uv run pytest
+
+# collector만 테스트
+test-collector:
+	uv run pytest tests/test_collector.py -v
+
+kafka-init:
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-games --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-genres --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-prices --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-players --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-reviews --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-review-snapshots --partitions 3 --replication-factor 1
+
+# Kafka Topic 목록 확인
+kafka-topics:
+	docker exec -it steam_stats-kafka-1 kafka-topics --list --bootstrap-server localhost:9092
+
+kafka-delete:
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-games
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-genres
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-prices
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-players
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-reviews
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-review-snapshots
