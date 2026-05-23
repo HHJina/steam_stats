@@ -5,9 +5,6 @@ from .game import (
     GameGenre as GameGenre,
 )
 from .game import (
-    GameTag as GameTag,
-)
-from .game import (
     Genre as Genre,
 )
 from .game import (
@@ -30,7 +27,4 @@ from .game import (
 )
 from .game import (
     ReviewText as ReviewText,
-)
-from .game import (
-    Tag as Tag,
 )

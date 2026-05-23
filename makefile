@@ -62,7 +62,7 @@ test:
 
 # CI 로컬에서 전부 한번에 실행
 check:
-	uv run ruff check . && uv run ruff format --check . && uv run mypy api/ && uv run bandit -r api/ collector/ && uv run pytest
+	uv run ruff check . && uv run ruff format --check . && uv run mypy api/ && uv run bandit -r api/ collector
 
 fix:
 	uv run ruff check --fix .
@@ -97,21 +97,28 @@ test-collector:
 	uv run pytest tests/test_collector.py -v
 
 kafka-init:
-	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-games --partitions 3 --replication-factor 1
-	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-genres --partitions 3 --replication-factor 1
-	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-prices --partitions 3 --replication-factor 1
-	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-players --partitions 3 --replication-factor 1
-	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-reviews --partitions 3 --replication-factor 1
-	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server localhost:9092 --topic steam-review-snapshots --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server kafka:9092 --topic steam-games --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server kafka:9092 --topic steam-genres --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server kafka:9092 --topic steam-prices --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server kafka:9092 --topic steam-players --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server kafka:9092 --topic steam-reviews --partitions 3 --replication-factor 1
+	docker exec -it steam_stats-kafka-1 kafka-topics --create --bootstrap-server kafka:9092 --topic steam-review-snapshots --partitions 3 --replication-factor 1
 
-# Kafka Topic 목록 확인
 kafka-topics:
-	docker exec -it steam_stats-kafka-1 kafka-topics --list --bootstrap-server localhost:9092
+	docker exec -it steam_stats-kafka-1 kafka-topics --list --bootstrap-server kafka:9092
 
 kafka-delete:
-	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-games
-	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-genres
-	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-prices
-	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-players
-	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-reviews
-	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server localhost:9092 --topic steam-review-snapshots
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server kafka:9092 --topic steam-games
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server kafka:9092 --topic steam-genres
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server kafka:9092 --topic steam-prices
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server kafka:9092 --topic steam-players
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server kafka:9092 --topic steam-reviews
+	docker exec -it steam_stats-kafka-1 kafka-topics --delete --bootstrap-server kafka:9092 --topic steam-review-snapshots
+
+# Airflow DAG 목록 확인
+airflow-dags:
+	docker exec -it steam_stats-airflow-1 airflow dags list
+
+# Airflow DAG 수동 실행
+airflow-run:
+	docker exec -it steam_stats-airflow-1 airflow dags trigger steam_collect_pipeline

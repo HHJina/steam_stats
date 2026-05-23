@@ -1,0 +1,236 @@
+import os
+
+import pandas as pd
+import psycopg2
+import psycopg2.extras
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def get_conn():
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
+
+
+def get_valid_app_ids(cursor) -> set:
+    cursor.execute("SELECT app_id FROM games")
+    return {row[0] for row in cursor.fetchall()}
+
+
+def load_games(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+    records = df.to_dict("records")
+    for row in records:
+        try:
+            cursor.execute(
+                """
+                INSERT INTO games (
+                    app_id, name, developer, publisher,
+                    is_free, is_indie, release_date, header_image,
+                    metacritic_score, metacritic_url, peak_in_game,
+                    collected_at
+                )
+                VALUES (
+                    %(app_id)s, %(name)s, %(developer)s, %(publisher)s,
+                    %(is_free)s, %(is_indie)s, %(release_date)s, %(header_image)s,
+                    %(metacritic_score)s, %(metacritic_url)s, %(peak_in_game)s,
+                    NOW()
+                )
+                ON CONFLICT (app_id) DO UPDATE SET
+                    name = EXCLUDED.name,
+                    developer = EXCLUDED.developer,
+                    publisher = EXCLUDED.publisher,
+                    is_free = EXCLUDED.is_free,
+                    is_indie = EXCLUDED.is_indie,
+                    release_date = EXCLUDED.release_date,
+                    header_image = EXCLUDED.header_image,
+                    metacritic_score = EXCLUDED.metacritic_score,
+                    metacritic_url = EXCLUDED.metacritic_url,
+                    peak_in_game = EXCLUDED.peak_in_game,
+                    collected_at = NOW()
+                """,
+                row,
+            )
+        except Exception as e:
+            print(f"에러 발생 row: {row}")
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def load_genres(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+    valid_app_ids = get_valid_app_ids(cursor)
+    records = [row for row in df.to_dict("records") if row["app_id"] in valid_app_ids]
+
+    for row in records:
+        try:
+            cursor.execute(
+                """
+                INSERT INTO genres (name)
+                VALUES (%(genre_name)s)
+                ON CONFLICT (name) DO NOTHING
+                RETURNING id
+                """,
+                row,
+            )
+            result = cursor.fetchone()
+
+            if not result:
+                cursor.execute(
+                    "SELECT id FROM genres WHERE name = %(genre_name)s", row
+                )
+                result = cursor.fetchone()
+
+            genre_id = result[0]
+
+            cursor.execute(
+                """
+                INSERT INTO game_genres (app_id, genre_id)
+                VALUES (%(app_id)s, %(genre_id)s)
+                ON CONFLICT DO NOTHING
+                """,
+                {"app_id": row["app_id"], "genre_id": genre_id},
+            )
+        except Exception as e:
+            print(f"에러 발생 row: {row}")
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def load_prices(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+    valid_app_ids = get_valid_app_ids(cursor)
+    records = [row for row in df.to_dict("records") if row["app_id"] in valid_app_ids]
+
+    if records:
+        try:
+            psycopg2.extras.execute_batch(
+                cursor,
+                """
+                INSERT INTO price_history (app_id, price, original_price, discount_rate, collected_at)
+                VALUES (%(app_id)s, %(price)s, %(original_price)s, %(discount_rate)s, NOW())
+                """,
+                records,
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+    cursor.close()
+    conn.close()
+
+
+def load_player_counts(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+    valid_app_ids = get_valid_app_ids(cursor)
+    records = [row for row in df.to_dict("records") if row["app_id"] in valid_app_ids]
+
+    if records:
+        try:
+            psycopg2.extras.execute_batch(
+                cursor,
+                """
+                INSERT INTO player_counts (app_id, player_count, collected_at)
+                VALUES (%(app_id)s, %(player_count)s, NOW())
+                """,
+                records,
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+    cursor.close()
+    conn.close()
+
+
+def load_review_snapshots(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+    valid_app_ids = get_valid_app_ids(cursor)
+    records = [row for row in df.to_dict("records") if row["app_id"] in valid_app_ids]
+
+    if records:
+        try:
+            psycopg2.extras.execute_batch(
+                cursor,
+                """
+                INSERT INTO reviews_snapshot (
+                    app_id, total_reviews, positive_reviews, negative_reviews,
+                    positive_ratio, collected_at
+                )
+                VALUES (
+                    %(app_id)s, %(total_reviews)s, %(positive_reviews)s,
+                    %(negative_reviews)s, %(positive_ratio)s, NOW()
+                )
+                """,
+                records,
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+    cursor.close()
+    conn.close()
+
+
+def load_reviews(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+    valid_app_ids = get_valid_app_ids(cursor)
+
+    cursor.execute("SELECT review_id FROM review_texts")
+    existing_ids = {row[0] for row in cursor.fetchall()}
+
+    records = [
+        row for row in df.to_dict("records")
+        if row["review_id"] not in existing_ids
+        and row["app_id"] in valid_app_ids
+    ]
+
+    # Kafka 중복 메시지 제거
+    seen_ids = set()
+    unique_records = []
+    for row in records:
+        if row["review_id"] not in seen_ids:
+            seen_ids.add(row["review_id"])
+            unique_records.append(row)
+    records = unique_records
+
+    if records:
+        try:
+            psycopg2.extras.execute_batch(
+                cursor,
+                """
+                INSERT INTO review_texts (
+                    review_id, app_id, review_text, voted_up,
+                    playtime_hours, language, created_at, collected_at
+                )
+                VALUES (
+                    %(review_id)s, %(app_id)s, %(review_text)s, %(voted_up)s,
+                    %(playtime_hours)s, %(language)s, %(created_at)s, NOW()
+                )
+                """,
+                records,
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+    cursor.close()
+    conn.close()

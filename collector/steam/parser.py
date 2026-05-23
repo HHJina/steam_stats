@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def parse_game(raw: dict, peak_in_game: int) -> dict:
     devs = raw.get("developers")
     developer = devs[0] if devs else None

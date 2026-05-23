@@ -21,7 +21,7 @@ class Game(SQLModel, table=True):
     header_image: Optional[str] = None
     metacritic_score: Optional[int] = None
     metacritic_url: Optional[str] = None
-    peak_in_game: Optional[int] = None
+    peak_in_game: Optional[int] = Field(sa_column=Column(pg.BIGINT))
     collected_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -39,22 +39,6 @@ class GameGenre(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     app_id: int = Field(sa_column=Column(pg.INTEGER, ForeignKey("games.app_id", ondelete="CASCADE")))
     genre_id: int = Field(sa_column=Column(pg.INTEGER, ForeignKey("genres.id", ondelete="CASCADE")))
-
-
-# ===== 태그 정규화 =====
-class Tag(SQLModel, table=True):
-    __tablename__ = "tags"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(unique=True)
-
-
-class GameTag(SQLModel, table=True):
-    __tablename__ = "game_tags"
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    app_id: int = Field(sa_column=Column(pg.INTEGER, ForeignKey("games.app_id", ondelete="CASCADE")))
-    tag_id: int = Field(sa_column=Column(pg.INTEGER, ForeignKey("tags.id", ondelete="CASCADE")))
 
 
 # ===== 가격 히스토리 =====

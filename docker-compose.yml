@@ -3,13 +3,15 @@ services:
     image: confluentinc/cp-kafka:7.7.0
     ports:
       - "9092:9092"
+      - "9094:9094"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_LOG_DIRS: /var/lib/kafka/data
@@ -25,11 +27,45 @@ services:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
 
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+
+  airflow-init:
+    image: apache/airflow:2.9.0
+    depends_on:
+      - postgresql
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://steam:steam1234@postgresql:5432/airflowdb
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    command: db init
+
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    depends_on:
+      - postgresql
+      - airflow-init
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      DATABASE_URL: "postgresql://steam:steam1234@postgresql:5432/steamdb"
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://steam:steam1234@postgresql:5432/airflowdb
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    volumes:
+      - ./etl/dags:/opt/airflow/dags
+      - ./etl/tasks:/opt/airflow/tasks
+      - .:/opt/airflow/steam_stats
+    ports:
+      - "8080:8080"
+    command: standalone
 
 volumes:
   kafka_data:
