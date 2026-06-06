@@ -1,20 +1,14 @@
 import sys
+
 sys.path.insert(0, "/opt/airflow/steam_stats")
 
 from datetime import datetime, timedelta
 
-from airflow import DAG
 from airflow.operators.python import PythonOperator
 
+from airflow import DAG
+from collector.steam.collector import SteamCollector
 from etl.tasks.extract import SteamConsumer
-from etl.tasks.transform import (
-    transform_games,
-    transform_genres,
-    transform_players,
-    transform_prices,
-    transform_review_snapshots,
-    transform_reviews,
-)
 from etl.tasks.load import (
     load_games,
     load_genres,
@@ -23,7 +17,14 @@ from etl.tasks.load import (
     load_review_snapshots,
     load_reviews,
 )
-from collector.steam.collector import SteamCollector
+from etl.tasks.transform import (
+    transform_games,
+    transform_genres,
+    transform_players,
+    transform_prices,
+    transform_review_snapshots,
+    transform_reviews,
+)
 
 default_args = {
     "owner": "steam",
@@ -95,7 +96,6 @@ with DAG(
     catchup=False,
     tags=["steam", "collect"],
 ) as dag:
-
     t_collect = PythonOperator(
         task_id="collect_from_steam",
         python_callable=collect_from_steam,

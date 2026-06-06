@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "sqlmodel>=0.0.38",
     "uvicorn>=0.47.0",
+    "vadersentiment>=3.3.2",
 ]
 
 [dependency-groups]
@@ -36,6 +37,7 @@ select = ["E", "F", "I"]
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
+explicit_package_bases = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

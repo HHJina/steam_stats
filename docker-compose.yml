@@ -59,13 +59,16 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://steam:steam1234@postgresql:5432/airflowdb
       AIRFLOW__CORE__FERNET_KEY: ''
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__WEBSERVER__WORKERS: "1"
+      AIRFLOW__WEBSERVER__WORKER_TIMEOUT: "300"
     volumes:
       - ./etl/dags:/opt/airflow/dags
       - ./etl/tasks:/opt/airflow/tasks
       - .:/opt/airflow/steam_stats
     ports:
       - "8080:8080"
-    command: standalone
+    command: >
+      bash -c "rm -f /opt/airflow/airflow-webserver.pid && airflow standalone"
 
 volumes:
   kafka_data:

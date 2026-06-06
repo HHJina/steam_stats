@@ -122,3 +122,6 @@ airflow-dags:
 # Airflow DAG 수동 실행
 airflow-run:
 	docker exec -it steam_stats-airflow-1 airflow dags trigger steam_collect_pipeline
+
+airflow-trigger-analyze:
+	docker exec -it steam_stats-airflow-1 airflow dags trigger steam_analyze_pipeline

@@ -82,9 +82,7 @@ def load_genres(df: pd.DataFrame):
             result = cursor.fetchone()
 
             if not result:
-                cursor.execute(
-                    "SELECT id FROM genres WHERE name = %(genre_name)s", row
-                )
+                cursor.execute("SELECT id FROM genres WHERE name = %(genre_name)s", row)
                 result = cursor.fetchone()
 
             genre_id = result[0]
@@ -197,12 +195,9 @@ def load_reviews(df: pd.DataFrame):
     existing_ids = {row[0] for row in cursor.fetchall()}
 
     records = [
-        row for row in df.to_dict("records")
-        if row["review_id"] not in existing_ids
-        and row["app_id"] in valid_app_ids
+        row for row in df.to_dict("records") if row["review_id"] not in existing_ids and row["app_id"] in valid_app_ids
     ]
 
-    # Kafka 중복 메시지 제거
     seen_ids = set()
     unique_records = []
     for row in records:
@@ -224,6 +219,102 @@ def load_reviews(df: pd.DataFrame):
                     %(review_id)s, %(app_id)s, %(review_text)s, %(voted_up)s,
                     %(playtime_hours)s, %(language)s, %(created_at)s, NOW()
                 )
+                """,
+                records,
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+    cursor.close()
+    conn.close()
+
+
+def load_genre_stats(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    for _, row in df.iterrows():
+        try:
+            cursor.execute("SELECT id FROM genres WHERE name = %s", (row["genre_name"],))
+            result = cursor.fetchone()
+
+            if not result:
+                continue
+
+            genre_id = result[0]
+
+            cursor.execute(
+                """
+                INSERT INTO genre_stats (genre_id, avg_price, avg_positive_ratio, total_games, calculated_at)
+                VALUES (%s, %s, %s, %s, NOW())
+                ON CONFLICT DO NOTHING
+            """,
+                (
+                    genre_id,
+                    row["avg_price"] or 0,
+                    row["avg_positive_ratio"] or 0,
+                    row["total_games"],
+                ),
+            )
+
+        except Exception as e:
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def load_hidden_gems(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+
+    for _, row in df.iterrows():
+        try:
+            cursor.execute(
+                """
+                INSERT INTO hidden_gems (
+                    app_id, gem_score, positive_ratio,
+                    review_count, recent_positive_ratio, calculated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (app_id, calculated_at) DO NOTHING
+            """,
+                (
+                    int(row["app_id"]),
+                    float(row["gem_score"]),
+                    float(row["positive_ratio"]),
+                    int(row["review_count"]),
+                    float(row["recent_positive_ratio"]),
+                ),
+            )
+        except Exception as e:
+            print(f"에러: {e}")
+            conn.rollback()
+            raise
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def load_review_analysis(df: pd.DataFrame):
+    conn = get_conn()
+    cursor = conn.cursor()
+    records = df.to_dict("records")
+
+    if records:
+        try:
+            psycopg2.extras.execute_batch(
+                cursor,
+                """
+                INSERT INTO review_analysis (review_id, sentiment_score, calculated_at)
+                VALUES (%(review_id)s, %(sentiment_score)s, NOW())
+                ON CONFLICT (review_id) DO NOTHING
                 """,
                 records,
             )
