@@ -10,7 +10,7 @@ class SteamClient:
     def steam_app_detail(self, app_id: int):
         response = self.session.get(
             f"{self.store_url}/api/appdetails",
-            params={"appids": app_id, "cc": "kr"},  # 한국 가격
+            params={"appids": app_id, "cc": "kr"},
         ).json()
 
         result = response[str(app_id)]
@@ -19,10 +19,9 @@ class SteamClient:
         return result["data"]
 
     def top_rank_games(self):
-        response = self.session.get(f"{self.api_url}/ISteamChartsService/GetGamesByConcurrentPlayers/v1/").json()
-
-        # appids = [game["appid"] for game in response["response"]["ranks"]]
-
+        response = self.session.get(
+            f"{self.api_url}/ISteamChartsService/GetGamesByConcurrentPlayers/v1/"
+        ).json()
         return response["response"]["ranks"]
 
     def get_reviews(self, app_id: int, cursor: str = "*"):
@@ -30,11 +29,10 @@ class SteamClient:
             f"{self.store_url}/appreviews/{app_id}",
             params={
                 "json": 1,
-                "language": "koreana",
+                "language": "all",  # 전체 언어 수집
                 "num_per_page": 100,
                 "filter": "recent",
                 "cursor": cursor,
             },
         ).json()
-
         return response
