@@ -267,6 +267,7 @@ function GameDetail({ game, onBack }) {
   const [prices, setPrices] = useState(null);
   const [players, setPlayers] = useState(null);
   const [reviews, setReviews] = useState(null);
+  const [spikes, setSpikes] = useState(null);
 
   useEffect(() => {
     fetch(`${API}/games/${game.app_id}/prices`).then(r => r.json()).then(d => {
@@ -276,11 +277,12 @@ function GameDetail({ game, onBack }) {
       setPlayers(d.map(p => ({ date: new Date(p.collected_at).toLocaleDateString("ko-KR", { month: "short", day: "numeric" }), players: p.player_count })));
     }).catch(() => setPlayers([]));
     fetch(`${API}/reviews/${game.app_id}?limit=5`).then(r => r.json()).then(setReviews).catch(() => setReviews([]));
+    fetch(`${API}/reviews/${game.app_id}/spikes`).then(r => r.json()).then(setSpikes).catch(() => setSpikes([]));
   }, [game.app_id]);
 
   return (
     <div>
-      <button onClick={onBack} style={{ background: "none", border: "1px solid var(--border)", color: "var(--text2)", cursor: "pointer", padding: "6px 14px", borderRadius: 6, fontSize: 13, marginBottom: "1.5rem", fontFamily: "var(--font-body)" }}>
+      <button onClick={onBack} style={{ background: "none", border: "1px solid var(--border)", color: "var(--text2)", cursor: "pointer", padding: "6px 14px", borderRadius: 6, fontSize: 13, marginBottom: "1.5rem", fontFamily: "var(--font-body)", outline: "none" }}>
         ← 목록으로
       </button>
       <div className="detail-hero">
@@ -302,7 +304,7 @@ function GameDetail({ game, onBack }) {
       </div>
 
       <div className="tabs">
-        {[["prices", "가격 히스토리"], ["players", "동시접속자"], ["reviews", "리뷰"]].map(([id, label]) => (
+        {[["prices", "가격 히스토리"], ["players", "동시접속자"], ["reviews", "리뷰"], ["spikes", "리뷰 폭증"]].map(([id, label]) => (
           <button key={id} className={`tab-btn${tab === id ? " active" : ""}`} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
@@ -352,6 +354,80 @@ function GameDetail({ game, onBack }) {
               <div style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, maxHeight: 80, overflow: "hidden" }}>{r.review_text}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "spikes" && (
+        <div>
+          <div className="chart-card" style={{ marginBottom: "1rem" }}>
+            <div className="chart-title">일별 리뷰 증가량</div>
+            {!spikes ? <Loading /> : spikes.length === 0 ? <div className="loading">데이터 없음</div> : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={spikes.slice().reverse()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="collected_at" tick={{ fill: "#8899bb", fontSize: 11 }}
+                    tickFormatter={v => new Date(v).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })} />
+                  <YAxis tick={{ fill: "#8899bb", fontSize: 11 }} />
+                  <Tooltip
+                    contentStyle={{ background: "#1a2340", border: "1px solid rgba(66,135,245,0.2)", borderRadius: 8, color: "#e8eaf6", fontSize: 13 }}
+                    labelFormatter={v => new Date(v).toLocaleDateString("ko-KR")}
+                    formatter={(v, name) => [v + "개", name === "review_delta" ? "전체 증가" : name]}
+                  />
+                  <Bar dataKey="review_delta" name="review_delta" fill="#4287f5" radius={[4, 4, 0, 0]}
+                    label={false}
+                    cell={spikes.slice().reverse().map((s, i) => (
+                      <rect key={i} fill={s.is_negative_spike ? "#e05c5c" : s.is_positive_spike ? "#00c9b1" : "#4287f5"} />
+                    ))}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* 범례 */}
+          <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", fontSize: 12 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 2, background: "#00c9b1", display: "inline-block" }} />
+              <span style={{ color: "var(--text2)" }}>긍정 폭증 (화제작)</span>
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 2, background: "#e05c5c", display: "inline-block" }} />
+              <span style={{ color: "var(--text2)" }}>부정 폭증 (리뷰 폭탄)</span>
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 2, background: "#4287f5", display: "inline-block" }} />
+              <span style={{ color: "var(--text2)" }}>일반</span>
+            </span>
+          </div>
+
+          {/* 폭증 이벤트 목록 */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {!spikes ? null : spikes.filter(s => s.is_positive_spike || s.is_negative_spike).length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--text3)", padding: "1rem", textAlign: "center" }}>감지된 리뷰 폭증 이벤트가 없습니다</div>
+            ) : spikes.filter(s => s.is_positive_spike || s.is_negative_spike).map((s, i) => (
+              <div key={i} className="card" style={{ borderColor: s.is_negative_spike ? "rgba(224,92,92,0.3)" : "rgba(0,201,177,0.3)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    <span className={`badge ${s.is_negative_spike ? "badge-red" : "badge-teal"}`}>
+                      {s.is_negative_spike ? "🚨 리뷰 폭탄" : "🔥 화제작"}
+                    </span>
+                    <span style={{ fontSize: 13, color: "var(--text2)" }}>
+                      {new Date(s.collected_at).toLocaleDateString("ko-KR")}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontFamily: "var(--font-head)", fontSize: 18, fontWeight: 700, color: s.is_negative_spike ? "#e05c5c" : "#00c9b1" }}>
+                      +{s.review_delta?.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text3)" }}>리뷰 증가</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: "0.5rem", fontSize: 12, color: "var(--text3)" }}>
+                  전체 {s.total_reviews?.toLocaleString()}개
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
