@@ -22,3 +22,8 @@ def get_review_snapshot(app_id: int, session: Session = Depends(get_session)):
 @router.get("/{app_id}/spikes", response_model=list[ReviewSpikeResponse])
 def get_review_spikes(app_id: int, session: Session = Depends(get_session)):
     return ReviewService.get_review_spikes(app_id, session)
+
+
+@router.get("/{app_id}/sentiment")
+def get_sentiment(app_id: int, session: Session = Depends(get_session)):
+    return ReviewService.get_sentiment(app_id, session)

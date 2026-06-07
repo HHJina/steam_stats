@@ -61,3 +61,34 @@ class ReviewService:
             }
             for row in rows
         ]
+
+    @staticmethod
+    def get_sentiment(app_id: int, session: Session):
+        result = session.execute(
+            text("""
+              SELECT
+                  AVG(ra.sentiment_score) AS avg_sentiment,
+                  COUNT(CASE WHEN ra.sentiment_score > 0.2 THEN 1 END) AS positive_count,
+                  COUNT(CASE WHEN ra.sentiment_score < -0.2 THEN 1 END) AS negative_count,
+                  COUNT(CASE WHEN ra.sentiment_score BETWEEN -0.2 AND 0.2 THEN 1 END) AS neutral_count
+              FROM review_analysis ra
+                       JOIN review_texts rt ON ra.review_id = rt.review_id
+              WHERE rt.app_id = :app_id
+              """),
+            {"app_id": app_id},
+        ).fetchone()
+
+        if not result:
+            return {
+                "avg_sentiment": 0.0,
+                "positive_count": 0,
+                "negative_count": 0,
+                "neutral_count": 0,
+            }
+
+        return {
+            "avg_sentiment": float(result.avg_sentiment or 0),
+            "positive_count": result.positive_count,
+            "negative_count": result.negative_count,
+            "neutral_count": result.neutral_count,
+        }
