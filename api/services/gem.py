@@ -1,11 +1,8 @@
-from sqlalchemy import desc, text
-from sqlmodel import Session, select
-
-from api.models.game import Game, HiddenGem
+from sqlalchemy import text
+from sqlmodel import Session
 
 
 class GemService:
-
     @staticmethod
     def get_hidden_gems(session: Session, limit: int = 20, offset: int = 0):
         result = session.execute(

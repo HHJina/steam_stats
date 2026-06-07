@@ -10,7 +10,7 @@ up-pipeline:
 
 # 인프라 실행
 up:
-    docker compose up -d
+	docker compose up -d
 
 # 인프라 종료
 down:
@@ -78,11 +78,11 @@ migrate-create:
 
 # DB에 적용
 migrate:
-    alembic upgrade head
+	alembic upgrade head
 
 # 한 단계 롤백
 migrate-down:
-    alembic downgrade -1
+	alembic downgrade -1
 
 # PostgreSQL CLI 접속
 db:
