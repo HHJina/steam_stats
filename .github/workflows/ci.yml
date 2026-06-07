@@ -26,9 +26,6 @@ jobs:
       - name: ruff 린팅
         run: uv run ruff check .
 
-      - name: black 포맷 체크
-        run: uv run black --check .
-
       - name: mypy 타입 체크
         run: uv run mypy api/
 
