@@ -10,7 +10,7 @@ up-pipeline:
 
 # 인프라 실행
 up:
-	docker compose up -d
+    docker compose up -d
 
 # 인프라 종료
 down:
@@ -35,6 +35,10 @@ clean:
 # API 서버 실행
 run-api:
 	uv run uvicorn api.main:app --reload
+
+run:
+	make run-api & cd frontend && npm run dev
+
 
 # 의존성 설치
 install:
@@ -74,11 +78,11 @@ migrate-create:
 
 # DB에 적용
 migrate:
-	alembic upgrade head
+    alembic upgrade head
 
 # 한 단계 롤백
 migrate-down:
-	alembic downgrade -1
+    alembic downgrade -1
 
 # PostgreSQL CLI 접속
 db:
