@@ -55,7 +55,7 @@ class ReviewService:
             {
                 "collected_at": row.collected_at,
                 "total_reviews": row.total_reviews,
-                "review_delta": row.review_delta or 0,
+                "review_delta": max(row.review_delta or 0, 0),
                 "is_positive_spike": (row.positive_delta or 0) > SPIKE_THRESHOLD,
                 "is_negative_spike": (row.negative_delta or 0) > SPIKE_THRESHOLD,
             }

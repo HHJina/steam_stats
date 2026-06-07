@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 
 // const API = "http://localhost:8000/api";
@@ -265,6 +265,7 @@ function GameDetail({ game, onBack }) {
                   <YAxis tick={{ fill: "#8899bb", fontSize: 11 }} />
                   <Tooltip contentStyle={{ background: "#1a2340", border: "1px solid rgba(66,135,245,0.2)", borderRadius: 8, color: "#e8eaf6", fontSize: 13 }} labelFormatter={v => new Date(v).toLocaleDateString("ko-KR")} formatter={v => [v + "개", "리뷰 증가"]} />
                   <Bar dataKey="review_delta" name="리뷰 증가" fill="#4287f5" radius={[4, 4, 0, 0]} />
+                  <ReferenceLine y={0} stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -542,6 +543,7 @@ function StatsPage() {
                 <YAxis type="category" dataKey="genre_name" tick={{ fill: "#8899bb", fontSize: 11 }} width={80} />
                 <Tooltip contentStyle={{ background: "#1a2340", border: "1px solid rgba(66,135,245,0.2)", borderRadius: 8, color: "#e8eaf6", fontSize: 13 }} />
                 <Bar dataKey="total_games" fill="#4287f5" radius={[0, 4, 4, 0]} name="게임 수" />
+                <ReferenceLine y={0} stroke="rgba(255,255,255,0.3)" strokeWidth={1} />
               </BarChart>
             </ResponsiveContainer>
           </div>
