@@ -4,7 +4,8 @@ import {
   Tooltip, ResponsiveContainer, Legend
 } from "recharts";
 
-const API = "http://localhost:8000/api";
+// const API = "http://localhost:8000/api";
+const API = "https://steamstats-production.up.railway.app/api"
 
 const NAV = [
   { id: "home", label: "홈" },
