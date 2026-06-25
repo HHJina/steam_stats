@@ -163,7 +163,7 @@ function GameDetail({ game, onBack }) {
     fetch(`${API}/games/${game.app_id}/players`).then(r => r.json()).then(d => {
       setPlayers(d.map(p => ({ date: new Date(p.collected_at).toLocaleDateString("ko-KR", { month: "short", day: "numeric" }), players: p.player_count })));
     }).catch(() => setPlayers([]));
-    fetch(`${API}/reviews/${game.app_id}?limit=5`).then(r => r.json()).then(setReviews).catch(() => setReviews([]));
+    fetch(`${API}/reviews/${game.app_id}?limit=5&language=korean`).then(r => r.json()).then(setReviews).catch(() => setReviews([]));
     fetch(`${API}/reviews/${game.app_id}/spikes`).then(r => r.json()).then(setSpikes).catch(() => setSpikes([]));
     fetch(`${API}/reviews/${game.app_id}/sentiment`).then(r => r.json()).then(setSentiment).catch(() => setSentiment(null));
   }, [game.app_id]);
