@@ -448,10 +448,15 @@ function GamesPage({ onSelectGame }) {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetch(`${API}/games/?limit=50`).then(r => r.json()).then(setGames).catch(() => setGames([]));
+    fetch(`${API}/games/?limit=100`)
+      .then(r => r.json())
+      .then(setGames)
+      .catch(() => setGames([]));
   }, []);
 
-  const filtered = games?.filter(g => g.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = games
+    ?.filter(g => g.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (b.peak_in_game || 0) - (a.peak_in_game || 0));
 
   return (
     <div>
@@ -460,9 +465,23 @@ function GamesPage({ onSelectGame }) {
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="게임 검색..."
           style={{ marginLeft: "auto", background: "var(--panel)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 6, padding: "6px 12px", fontSize: 13, fontFamily: "var(--font-body)", outline: "none", width: 200 }} />
       </div>
-      {!filtered ? <Loading /> : (
+      {!filtered ? <Loading /> : filtered.length === 0 ? (
+        <div className="loading">검색 결과가 없습니다</div>
+      ) : (
         <div className="grid grid-2">
-          {filtered.map(g => <GameCard key={g.app_id} game={g} onClick={onSelectGame} />)}
+          {filtered.map((g, i) => (
+            <div key={g.app_id} style={{ position: "relative" }}>
+              <div style={{
+                position: "absolute", top: 8, left: 8, zIndex: 1,
+                fontFamily: "var(--font-head)", fontSize: 16, fontWeight: 700,
+                color: i < 3 ? "var(--amber)" : "var(--text3)",
+                background: "rgba(10,15,30,0.7)", borderRadius: 4, padding: "1px 6px"
+              }}>
+                #{i + 1}
+              </div>
+              <GameCard game={g} onClick={onSelectGame} />
+            </div>
+          ))}
         </div>
       )}
     </div>
