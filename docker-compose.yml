@@ -52,9 +52,10 @@ services:
     depends_on:
       - postgresql
       - airflow-init
+    env_file:
+      - .env
     environment:
       KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-      DATABASE_URL: "postgresql://steam:steam1234@postgresql:5432/steamdb"
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://steam:steam1234@postgresql:5432/airflowdb
       AIRFLOW__CORE__FERNET_KEY: ''

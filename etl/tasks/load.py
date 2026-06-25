@@ -5,7 +5,7 @@ import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv("/opt/airflow/steam_stats/.env")
 
 
 def get_conn():
