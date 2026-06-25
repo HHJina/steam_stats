@@ -44,12 +44,20 @@ def process_topic(topic: str, transform_fn, load_fn):
     consumer = SteamConsumer(topic, group_id="steam-etl-v2")
 
     all_messages = []
+    empty_count = 0
+    max_empty = 3
+
     while True:
         messages = consumer.poll(timeout_ms=30000)
         if not messages:
-            break
-        all_messages.extend(messages)
-        print(f"{topic} 누적: {len(all_messages)}개")
+            empty_count += 1
+            print(f"{topic} 빈 응답 {empty_count}/{max_empty}")
+            if empty_count >= max_empty:
+                break
+        else:
+            empty_count = 0
+            all_messages.extend(messages)
+            print(f"{topic} 누적: {len(all_messages)}개")
 
     if not all_messages:
         print(f"{topic} 메시지 없음")
@@ -131,6 +139,5 @@ with DAG(
         python_callable=process_reviews,
     )
 
-    # 수집 먼저 → 그 다음 games → 나머지 병렬
     t_collect >> t_games
     t_games >> [t_genres, t_prices, t_players, t_snapshots, t_reviews]
