@@ -14,6 +14,9 @@ class SteamConsumer:
             auto_offset_reset="earliest",  # 처음부터 읽기, latest 마지막만 읽기
             enable_auto_commit=False,  # 수동커밋
             max_poll_records=500,  # 한번에 처리하는 개수
+            # poll() 루프를 벗어난 뒤 transform/load 처리에 시간이 걸려도
+            # 컨슈머가 그룹에서 강제 퇴출되지 않도록 여유를 둠 (기본값 300000ms = 5분)
+            max_poll_interval_ms=600000,  # 10분
         )
 
     def poll(self, timeout_ms: int = 5000) -> list[dict]:

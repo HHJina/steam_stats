@@ -21,45 +21,58 @@ def load_games(df: pd.DataFrame):
     conn = get_conn()
     cursor = conn.cursor()
     records = df.to_dict("records")
-    for row in records:
-        try:
-            cursor.execute(
-                """
-                INSERT INTO games (
-                    app_id, name, developer, publisher,
-                    is_free, is_indie, release_date, header_image,
-                    metacritic_score, metacritic_url, peak_in_game,
-                    collected_at
-                )
-                VALUES (
-                    %(app_id)s, %(name)s, %(developer)s, %(publisher)s,
-                    %(is_free)s, %(is_indie)s, %(release_date)s, %(header_image)s,
-                    %(metacritic_score)s, %(metacritic_url)s, %(peak_in_game)s,
-                    NOW()
-                )
-                ON CONFLICT (app_id) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    developer = EXCLUDED.developer,
-                    publisher = EXCLUDED.publisher,
-                    is_free = EXCLUDED.is_free,
-                    is_indie = EXCLUDED.is_indie,
-                    release_date = EXCLUDED.release_date,
-                    header_image = EXCLUDED.header_image,
-                    metacritic_score = EXCLUDED.metacritic_score,
-                    metacritic_url = EXCLUDED.metacritic_url,
-                    peak_in_game = EXCLUDED.peak_in_game,
-                    collected_at = NOW()
-                """,
-                row,
+
+    if not records:
+        cursor.close()
+        conn.close()
+        return
+
+    columns = [
+        "app_id", "name", "developer", "publisher",
+        "is_free", "is_indie", "release_date", "header_image",
+        "metacritic_score", "metacritic_url", "peak_in_game",
+    ]
+
+    values = [tuple(row.get(col) for col in columns) for row in records]
+
+    try:
+        # row-by-row execute() 대신 execute_values로 한 번에 배치 insert/upsert
+        # (기존 방식은 수백 건을 개별 왕복으로 처리해 poll 루프 밖 처리 시간이
+        # max_poll_interval_ms를 초과시키는 원인이었음)
+        psycopg2.extras.execute_values(
+            cursor,
+            """
+            INSERT INTO games (
+                app_id, name, developer, publisher,
+                is_free, is_indie, release_date, header_image,
+                metacritic_score, metacritic_url, peak_in_game,
+                collected_at
             )
-        except Exception as e:
-            print(f"에러 발생 row: {row}")
-            print(f"에러: {e}")
-            conn.rollback()
-            raise
-    conn.commit()
-    cursor.close()
-    conn.close()
+            VALUES %s
+            ON CONFLICT (app_id) DO UPDATE SET
+                name = EXCLUDED.name,
+                developer = EXCLUDED.developer,
+                publisher = EXCLUDED.publisher,
+                is_free = EXCLUDED.is_free,
+                is_indie = EXCLUDED.is_indie,
+                release_date = EXCLUDED.release_date,
+                header_image = EXCLUDED.header_image,
+                metacritic_score = EXCLUDED.metacritic_score,
+                metacritic_url = EXCLUDED.metacritic_url,
+                peak_in_game = EXCLUDED.peak_in_game,
+                collected_at = NOW()
+            """,
+            values,
+            template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())",
+        )
+        conn.commit()
+    except Exception as e:
+        print(f"에러: {e}")
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def load_genres(df: pd.DataFrame):
