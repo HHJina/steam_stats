@@ -9,7 +9,9 @@ router = APIRouter()
 
 
 @router.get("/{app_id}", response_model=list[ReviewResponse])
-def get_review_list(app_id: int, limit: int = 20, offset: int = 0, language: str = None, session: Session = Depends(get_session)):
+def get_review_list(
+    app_id: int, limit: int = 20, offset: int = 0, language: str | None = None, session: Session = Depends(get_session)
+):
     return ReviewService.get_review_list(app_id, session, limit, offset, language)
 
 

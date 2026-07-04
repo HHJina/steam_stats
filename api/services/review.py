@@ -8,11 +8,11 @@ SPIKE_THRESHOLD = 100
 
 class ReviewService:
     @staticmethod
-    def get_review_list(app_id: int, session: Session, limit: int = 20, offset: int = 0, language: str = None):
+    def get_review_list(app_id: int, session: Session, limit: int = 20, offset: int = 0, language: str | None = None):
         query = (
             select(ReviewText)
             .where(ReviewText.app_id == app_id)
-            .order_by(desc(ReviewText.created_at))
+            .order_by(desc(ReviewText.created_at))  # type: ignore[arg-type]
             .limit(limit)
             .offset(offset)
         )

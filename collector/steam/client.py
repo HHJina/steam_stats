@@ -19,9 +19,7 @@ class SteamClient:
         return result["data"]
 
     def top_rank_games(self):
-        response = self.session.get(
-            f"{self.api_url}/ISteamChartsService/GetGamesByConcurrentPlayers/v1/"
-        ).json()
+        response = self.session.get(f"{self.api_url}/ISteamChartsService/GetGamesByConcurrentPlayers/v1/").json()
         return response["response"]["ranks"]
 
     def get_reviews(self, app_id: int, cursor: str = "*"):

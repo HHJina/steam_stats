@@ -28,9 +28,17 @@ def load_games(df: pd.DataFrame):
         return
 
     columns = [
-        "app_id", "name", "developer", "publisher",
-        "is_free", "is_indie", "release_date", "header_image",
-        "metacritic_score", "metacritic_url", "peak_in_game",
+        "app_id",
+        "name",
+        "developer",
+        "publisher",
+        "is_free",
+        "is_indie",
+        "release_date",
+        "header_image",
+        "metacritic_score",
+        "metacritic_url",
+        "peak_in_game",
     ]
 
     values = [tuple(row.get(col) for col in columns) for row in records]
